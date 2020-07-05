@@ -1,0 +1,17 @@
+{
+  "schema": {
+    "$id": "SimpleLicense",
+    "$schema": "http://kilt-protocol.org/draft-01/ctype#",
+    "properties": {
+      "name": {
+        "type": "string"
+      },
+      "age": {
+        "type": "integer"
+      }
+    },
+    "type": "object"
+  },
+  "owner": "5EkPdXVsoJ8Vm8UTrs7c89ghJpWVZHGN7RGiQFSi6VC6RiX9",
+  "hash": "0x16fa158d730aa83f6339497fafa59d895c89c3eae24dc323532f71e235824152"
+}

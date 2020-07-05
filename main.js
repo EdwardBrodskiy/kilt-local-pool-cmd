@@ -9,17 +9,19 @@ const rl = readline.createInterface({
 
 const commands = {
     help: help,
-    list: () => listObj(commands, 2, 2),
+    commands: (depth) => listObj(commands, depth, depth),
     Claimer: {
         create: () => CreateIdentety("User"),
-        remove: () => removeIdentety("User")
+        remove: () => removeIdentety("User"),
+        list: (name) => console.log(listItems("User-ids", name))
     },
     Attester: {
         create: () => CreateIdentety("Attester"),
-        remove: () => removeIdentety("Attester")
+        remove: () => removeIdentety("Attester"),
+        list: (name) => console.log(listItems("Attester-ids", name))
     },
     Claim: {
-        create: null,
+        create: (claimerName) => CreateClaim("claim", listItems("User-ids", claimerName)[0]),
         remove: null
     }
 
@@ -30,11 +32,11 @@ rl.on('line', (input) => {
     rl.pause()
     try {
         var command = commands
-        while (args.length !== 0) {
+        while (typeof command !== "function") {
             command = command[args.shift()]
         }
         console.log("")
-        command()
+        command(...args)
     } catch (e) {
         console.log(e)
     } finally {
@@ -44,7 +46,7 @@ rl.on('line', (input) => {
 
 rl.on('close', () => {
     console.log("Localy stored data:")
-    store.each(function(value, key) {
+    store.each(function (value, key) {
         console.log(key, '==', value)
     })
 })
@@ -59,7 +61,7 @@ function help() {
 function listObj(obj, depth, max_depth) {
     for (var item in obj) {
         console.log(item.padStart((max_depth - depth) * 3 + item.length, '   '))
-        if (depth !== 1) {
+        if (depth > 1) {
             listObj(obj[item], depth - 1, max_depth)
         }
     }
@@ -98,11 +100,78 @@ function CreateIdentety(type) {
 
 function removeIdentety(type) {
     const storageLocation = type + "-ids"
-    
+
     rl.question('Enter name : ', (name) => {
         var ids = store.get(storageLocation)
-        for(var i = 0; i < ids.length;i++){
-            if(name === ids[i].name){
+        for (var i = 0; i < ids.length; i++) {
+            if (name === ids[i].name) {
+                console.log(type + " removed with name '" + ids[i].name + "' and mnemonic '" + ids[i].mnemonic + "'")
+                ids.splice(i, 1)
+                store.set(storageLocation, ids)
+                break
+            }
+        }
+    });
+}
+
+function listItems(storageLocation, name) {
+    const items = store.get(storageLocation)
+    var output = []
+    for (var i in items) {
+        if (name === items[i].name || "$" + i.toString() === name || name === "*") {
+            output.push(items[i])
+        }
+    }
+    return output
+}
+
+function CreateClaim(type, claimerDetails) {
+    const storageLocation = type + "-claims"
+
+    rl.question('Enter name and age?', (answer) => {
+        var inputs = answer.split(" ")
+        var data = {
+            name: inputs.shift(),
+            age: parseInt(inputs.shift())
+        }
+
+        const ctype = require('./ctype.json') // load ctype
+        // check claimer was found
+        if(claimerDetails == null){
+            console.log("No such claimer exists")
+            return
+        }
+
+        const claimer = Kilt.Identity.buildFromMnemonic(claimerDetails.mnemonic)
+        // create the claim
+        const claim = Kilt.Claim.fromCTypeAndClaimContents(
+            ctype,
+            data,
+            claimer.address,
+            null
+        );
+        // format for attestation request
+        const requestForAttestation = Kilt.RequestForAttestation.fromClaimAndIdentity(
+            claim,
+            claimer,
+            []
+        );
+        // save claim localy
+        var claims = store.get(storageLocation)
+
+        claims.push(requestForAttestation)
+
+        store.set(storageLocation, claims)
+    });
+}
+
+function removeClaim(type) {
+    const storageLocation = type + "-claims"
+
+    rl.question('Enter name : ', (name) => {
+        var ids = store.get(storageLocation)
+        for (var i = 0; i < ids.length; i++) {
+            if (name === ids[i].name) {
                 console.log(type + " removed with name '" + ids[i].name + "' and mnemonic '" + ids[i].mnemonic + "'")
                 ids.splice(i, 1)
                 store.set(storageLocation, ids)
