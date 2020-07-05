@@ -2,6 +2,13 @@ const store = require('store')
 const readline = require('readline');
 const Kilt = require("@kiltprotocol/sdk-js")
 
+storage = {
+    claimers: "Claimer",
+    attesters: "Attester",
+    claims: "Claim"
+}
+
+
 const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout
@@ -11,21 +18,23 @@ const commands = {
     help: help,
     commands: (depth) => listObj(commands, depth, depth),
     Claimer: {
-        create: () => CreateIdentety("User"),
-        remove: () => removeIdentety("User"),
-        list: (name) => console.log(listItems("User-ids", name))
+        create: () => CreateIdentety(storage.claimers),
+        remove: () => removeIdentety(storage.claimers),
+        list: (name) => console.log(listItems(storage.claimers, name))
     },
     Attester: {
-        create: () => CreateIdentety("Attester"),
-        remove: () => removeIdentety("Attester"),
-        list: (name) => console.log(listItems("Attester-ids", name))
+        create: () => CreateIdentety(storage.attesters),
+        remove: () => removeIdentety(storage.attesters),
+        list: (name) => console.log(listItems(storage.attesters, name))
     },
     Claim: {
-        create: (claimerName) => CreateClaim("claim", listItems("User-ids", claimerName)[0]),
+        create: (claimerName) => CreateClaim(storage.claims, listItems(storage.claimers, claimerName)[0]),
         remove: null
     }
 
 }
+
+
 
 rl.on('line', (input) => {
     var args = input.split(" ")
@@ -68,8 +77,7 @@ function listObj(obj, depth, max_depth) {
 
 }
 
-function CreateIdentety(type) {
-    const storageLocation = type + "-ids"
+function CreateIdentety(storageLocation) {
 
     rl.question('Enter name and Mnemonic?(leave empty for auto generation)', (answer) => {
         var inputs = answer.split(" ")
@@ -85,27 +93,26 @@ function CreateIdentety(type) {
         try {
             Kilt.Identity.buildFromMnemonic(identity.mnemonic)
             var ids = store.get(storageLocation)
-            if (ids == null) {
+            if(ids == null){
                 ids = []
             }
             ids.push(identity)
             store.set(storageLocation, ids)
-            console.log(type + " created with name '" + identity.name + "' and mnemonic '" + identity.mnemonic + "'")
+            console.log(storageLocation + " created with name '" + identity.name + "' and mnemonic '" + identity.mnemonic + "'")
 
-        } catch (err) {
-            console.log("Invalid Mnemonic make sure it made up of 12 words")
+        } catch (e) {
+            console.log(e) //"Invalid Mnemonic make sure it made up of 12 words")
         }
     });
 }
 
-function removeIdentety(type) {
-    const storageLocation = type + "-ids"
+function removeIdentety(storageLocation) {
 
     rl.question('Enter name : ', (name) => {
         var ids = store.get(storageLocation)
         for (var i = 0; i < ids.length; i++) {
             if (name === ids[i].name) {
-                console.log(type + " removed with name '" + ids[i].name + "' and mnemonic '" + ids[i].mnemonic + "'")
+                console.log(storageLocation + " removed with name '" + ids[i].name + "' and mnemonic '" + ids[i].mnemonic + "'")
                 ids.splice(i, 1)
                 store.set(storageLocation, ids)
                 break
@@ -125,9 +132,8 @@ function listItems(storageLocation, name) {
     return output
 }
 
-function CreateClaim(type, claimerDetails) {
-    const storageLocation = type + "-claims"
-
+function CreateClaim(storageLocation, claimerDetails) {
+    console.log(storageLocation)
     rl.question('Enter name and age?', (answer) => {
         var inputs = answer.split(" ")
         var data = {
@@ -137,7 +143,7 @@ function CreateClaim(type, claimerDetails) {
 
         const ctype = require('./ctype.json') // load ctype
         // check claimer was found
-        if(claimerDetails == null){
+        if (claimerDetails == null) {
             console.log("No such claimer exists")
             return
         }
@@ -158,15 +164,16 @@ function CreateClaim(type, claimerDetails) {
         );
         // save claim localy
         var claims = store.get(storageLocation)
-
+        if(claims == null){
+            claims = []
+        }
         claims.push(requestForAttestation)
 
         store.set(storageLocation, claims)
     });
 }
 
-function removeClaim(type) {
-    const storageLocation = type + "-claims"
+function removeClaim(storageLocation) {
 
     rl.question('Enter name : ', (name) => {
         var ids = store.get(storageLocation)
