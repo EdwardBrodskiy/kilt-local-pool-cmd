@@ -29,7 +29,7 @@ const commands = {
     },
     Claim: {
         create: (claimerName) => CreateClaim(storage.claims, listItems(storage.claimers, claimerName)[0]),
-        remove: null
+        remove: () => removeClaim(storage.claims)
     }
 
 }
@@ -93,7 +93,7 @@ function CreateIdentety(storageLocation) {
         try {
             Kilt.Identity.buildFromMnemonic(identity.mnemonic)
             var ids = store.get(storageLocation)
-            if(ids == null){
+            if (ids == null) {
                 ids = []
             }
             ids.push(identity)
@@ -133,7 +133,6 @@ function listItems(storageLocation, name) {
 }
 
 function CreateClaim(storageLocation, claimerDetails) {
-    console.log(storageLocation)
     rl.question('Enter name and age?', (answer) => {
         var inputs = answer.split(" ")
         var data = {
@@ -164,24 +163,32 @@ function CreateClaim(storageLocation, claimerDetails) {
         );
         // save claim localy
         var claims = store.get(storageLocation)
-        if(claims == null){
+        if (claims == null) {
             claims = []
         }
         claims.push(requestForAttestation)
 
         store.set(storageLocation, claims)
+
+        console.log(storageLocation + " created with name '" + data.name + "' and age '" + data.age + "'")
     });
 }
 
 function removeClaim(storageLocation) {
 
     rl.question('Enter name : ', (name) => {
-        var ids = store.get(storageLocation)
-        for (var i = 0; i < ids.length; i++) {
-            if (name === ids[i].name) {
-                console.log(type + " removed with name '" + ids[i].name + "' and mnemonic '" + ids[i].mnemonic + "'")
-                ids.splice(i, 1)
-                store.set(storageLocation, ids)
+        var claims = store.get(storageLocation)
+        for (var i = 0; i < claims.length; i++) {
+            var contents = null
+            if (claims[i].attestation) {
+                contents = claims[i].request.claim.contents
+            } else {
+                contents = claims[i].claim.contents
+            }
+            if (name === contents.name) {
+                console.log(storageLocation + " removed with name '" + contents.name + "' and age '" + contents.age + "'")
+                claims.splice(i, 1)
+                store.set(storageLocation, claims)
                 break
             }
         }
