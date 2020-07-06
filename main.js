@@ -20,16 +20,18 @@ const commands = {
     Claimer: {
         create: () => CreateIdentety(storage.claimers),
         remove: () => removeIdentety(storage.claimers),
-        list: (name) => console.log(listItems(storage.claimers, name))
+        list: name => console.log(listItems(storage.claimers, name, claimer => claimer.name))
     },
     Attester: {
         create: () => CreateIdentety(storage.attesters),
         remove: () => removeIdentety(storage.attesters),
-        list: (name) => console.log(listItems(storage.attesters, name))
+        list: name => console.log(listItems(storage.attesters, name, attester => attester.name))
     },
     Claim: {
-        create: (claimerName) => CreateClaim(storage.claims, listItems(storage.claimers, claimerName)[0]),
-        remove: () => removeClaim(storage.claims)
+        create: (claimerName) => CreateClaim(storage.claims, listItems(storage.claimers, claimerName, claimer => claimer.name)[0]),
+        remove: () => removeClaim(storage.claims),
+        list: name => console.log(listItems(storage.claims, name, claim => getClaimContents(claim).name)),
+        listc: name => console.log(listItems(storage.claims, name, claim => getClaimContents(claim).name).map(getClaimContents))
     }
 
 }
@@ -121,15 +123,23 @@ function removeIdentety(storageLocation) {
     });
 }
 
-function listItems(storageLocation, name) {
+function listItems(storageLocation, name, getName) {
     const items = store.get(storageLocation)
     var output = []
     for (var i in items) {
-        if (name === items[i].name || "$" + i.toString() === name || name === "*") {
+        if (name === getName(items[i]) || "$" + i.toString() === name || name === "*") {
             output.push(items[i])
         }
     }
     return output
+}
+
+function getClaimContents(claim) {
+    if (claim.attestation) {
+        return claim.request.claim.contents
+    } else {
+        return claim.claim.contents
+    }
 }
 
 function CreateClaim(storageLocation, claimerDetails) {
@@ -179,12 +189,7 @@ function removeClaim(storageLocation) {
     rl.question('Enter name : ', (name) => {
         var claims = store.get(storageLocation)
         for (var i = 0; i < claims.length; i++) {
-            var contents = null
-            if (claims[i].attestation) {
-                contents = claims[i].request.claim.contents
-            } else {
-                contents = claims[i].claim.contents
-            }
+            var contents = getClaimContents(claims[i])
             if (name === contents.name) {
                 console.log(storageLocation + " removed with name '" + contents.name + "' and age '" + contents.age + "'")
                 claims.splice(i, 1)
