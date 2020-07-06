@@ -30,6 +30,7 @@ const commands = {
     Claim: {
         create: (claimerName) => CreateClaim(storage.claims, listItems(storage.claimers, claimerName, claimer => claimer.name)[0]),
         remove: () => removeClaim(storage.claims),
+        attest: attesterName => attestClaim(storage.claims, listItems(storage.attesters, attesterName, attester => attester.name)[0]),
         list: name => console.log(listItems(storage.claims, name, claim => getClaimContents(claim).name)),
         listc: name => console.log(listItems(storage.claims, name, claim => getClaimContents(claim).name).map(getClaimContents))
     }
@@ -93,7 +94,7 @@ function CreateIdentety(storageLocation) {
         }
 
         try {
-            Kilt.Identity.buildFromMnemonic(identity.mnemonic)
+            identity.address = Kilt.Identity.buildFromMnemonic(identity.mnemonic).address
             var ids = store.get(storageLocation)
             if (ids == null) {
                 ids = []
@@ -185,7 +186,6 @@ function CreateClaim(storageLocation, claimerDetails) {
 }
 
 function removeClaim(storageLocation) {
-
     rl.question('Enter name : ', (name) => {
         var claims = store.get(storageLocation)
         for (var i = 0; i < claims.length; i++) {
@@ -198,4 +198,75 @@ function removeClaim(storageLocation) {
             }
         }
     });
+}
+
+function attestClaim(storageLocation, attesterDetails) {
+    rl.question('Enter name : ', (name) => {
+        var claims = store.get(storageLocation)
+        var data, index = null
+        for (var i = 0; i < claims.length; i++) {
+            var contents = getClaimContents(claims[i])
+            if (name === contents.name) {
+                data = claims[i]
+                index = i
+                break
+            }
+        }
+
+        // setup attester
+        var attesterMnemonic = null
+        try {
+            attesterMnemonic = attesterDetails.mnemonic
+        } catch (e) {
+            console.log("No Attester exists")
+            return
+        }
+        const attester = Kilt.Identity.buildFromMnemonic(attesterMnemonic)
+
+        const requestForAttestation = Kilt.RequestForAttestation.fromRequest(
+            data
+        );
+
+        // Validate
+        if (!requestForAttestation.verifyData()) {
+            console.log("Invalid Data")
+            return
+        }
+        if (!requestForAttestation.verifySignature()) {
+            console.log("Invalid Signature")
+            return
+        }
+
+        // build the Attestation object
+        const attestation = Kilt.Attestation.fromRequestAndPublicIdentity(
+            requestForAttestation,
+            attester.getPublicIdentity()
+        );
+
+        // store on block chain
+
+        Kilt.default.connect('wss://full-nodes.kilt.io:9944')
+
+
+        attestation.store(attester).then(() => {
+            // create the attestedclaim
+            const attestedClaim = Kilt.AttestedClaim.fromRequestAndAttestation(
+                requestForAttestation,
+                attestation
+            );
+            // store it localy
+            var claims = store.get(storageLocation)
+            claims[index] = attestedClaim
+            store.set(storageLocation, claims)
+
+
+        }).catch(e => {
+            console.log(e)
+        }).finally(() => {
+            Kilt.default.disconnect()
+        })
+    });
+
+
+
 }
