@@ -32,7 +32,7 @@ function CreateIdentety(type) {
 
 
         } catch (err) {
-            alert("Invalid Mnemonic make sure it made up of 12 words")
+            console.log("Invalid Mnemonic make sure it made up of 12 words")
         }
 
         console.log("");

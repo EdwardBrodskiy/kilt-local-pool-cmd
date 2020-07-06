@@ -28,9 +28,10 @@ const commands = {
         list: name => console.log(listItems(storage.attesters, name, attester => attester.name))
     },
     Claim: {
-        create: (claimerName) => CreateClaim(storage.claims, listItems(storage.claimers, claimerName, claimer => claimer.name)[0]),
+        create: claimerName => CreateClaim(storage.claims, listItems(storage.claimers, claimerName, claimer => claimer.name)[0]),
         remove: () => removeClaim(storage.claims),
         attest: attesterName => attestClaim(storage.claims, listItems(storage.attesters, attesterName, attester => attester.name)[0]),
+        verify: claimerName => verifyClaim(storage.claims, listItems(storage.claimers, claimerName, claimer => claimer.name)[0]),
         list: name => console.log(listItems(storage.claims, name, claim => getClaimContents(claim).name)),
         listc: name => console.log(listItems(storage.claims, name, claim => getClaimContents(claim).name).map(getClaimContents))
     }
@@ -186,7 +187,7 @@ function CreateClaim(storageLocation, claimerDetails) {
 }
 
 function removeClaim(storageLocation) {
-    rl.question('Enter name : ', (name) => {
+    rl.question('Enter claim name : ', (name) => {
         var claims = store.get(storageLocation)
         for (var i = 0; i < claims.length; i++) {
             var contents = getClaimContents(claims[i])
@@ -201,7 +202,7 @@ function removeClaim(storageLocation) {
 }
 
 function attestClaim(storageLocation, attesterDetails) {
-    rl.question('Enter name : ', (name) => {
+    rl.question('Enter claim name : ', (name) => {
         var claims = store.get(storageLocation)
         var data, index = null
         for (var i = 0; i < claims.length; i++) {
@@ -266,7 +267,96 @@ function attestClaim(storageLocation, attesterDetails) {
             Kilt.default.disconnect()
         })
     });
+}
+
+function verifyClaim(storageLocation, claimer){
+    rl.question('Enter claim name : ', (name) => {
+        var claims = store.get(storageLocation)
+        var claim = null
+        for (var i = 0; i < claims.length; i++) {
+            var contents = getClaimContents(claims[i])
+            if (name === contents.name) {
+                claim = claims[i]
+                break
+            }
+        }
+        const result = Verifier.sendForVerification(claim, nonce => handleNonceSigning(claimer.mnemonic, nonce))
+        switch (result) {
+            case Verifier.SUCCESS:
+                console.log("Claim Accepted by Verifier")
+                break
+            case Verifier.CLAIMER_NOT_OWNER:
+                console.log("Claim does not belong to Claimer")
+                break
+            case Verifier.CLAIM_INVALID:
+                console.log("Claim denied by Verifier")
+                break
+            case Verifier.NOT_ACCEPTED_CLAIM_FORMAT:
+                console.log("Invalid Claim check if it is attested")
+                break
+            default:
+                console.log("Unkown result")
+        }
+    })
+}
+
+function handleNonceSigning(claimerMnemonic, nonce) { // sign the nonce and send of the data to be verified
+
+    const claimer = Kilt.Identity.buildFromMnemonic(claimerMnemonic)
+    // sign the nonce as the claimer with your private identity
+    const signedNonce = claimer.signStr(nonce)
+
+    return signedNonce
+}
+
+class Verifier {
+    static SUCCESS = 0
+    static CLAIMER_NOT_OWNER = 1
+    static CLAIM_INVALID = 2
+    static NOT_ACCEPTED_CLAIM_FORMAT
+
+
+    static sendForVerification(attestedClaimStruct, nonceSigner) {
+        const Kilt = require("@kiltprotocol/sdk-js")
+
+        const uuid = require("uuid")
+
+        // generate nonce
+        const nonce = uuid.v4()
+        // get Claimer to sign nonce
+        const signedNonce = nonceSigner(nonce)
+
+        // check the claimer is the owner of the Claim
+        var isSenderOwner = null
+        try {
+            isSenderOwner = Kilt.Crypto.verify(nonce, signedNonce, attestedClaimStruct.request.claim.owner)
+        } catch (e) { // catch if the form is not properly formated
+            return this.NOT_ACCEPTED_CLAIM_FORMAT
+        }
+
+        if (!isSenderOwner) {
+            return this.CLAIMER_NOT_OWNER
+        }
+
+        // proceed with verifying the attestedClaim itself
+        const attestedClaim = Kilt.AttestedClaim.fromAttestedClaim(attestedClaimStruct);
+
+        // connect to the KILT blockchain
+        Kilt.default.connect('wss://full-nodes.kilt.io:9944')
+
+        // verify:
+        // - verify that the data is valid for the given CTYPE;
+        // - verify on-chain that the attestation hash is present and that the attestation is not revoked.
+        const isValid = attestedClaim.verify()
+
+        Kilt.default.disconnect()
+
+        if (isValid) {
+            return this.SUCCESS
+        }
+        return this.CLAIM_INVALID
 
 
 
+    }
 }
