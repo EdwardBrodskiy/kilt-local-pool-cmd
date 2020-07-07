@@ -22,6 +22,7 @@ const commands = {
     Claimer: {
         create: () => Identeties.createIdentety(rl, storage.claimers),
         remove: () => Identeties.removeIdentety(rl, storage.claimers),
+        addDid: () => Identeties.createDid(rl, storage.claimers),
         list: name => console.log(listItems(storage.claimers, name, claimer => claimer.name))
     },
     Attester: {
@@ -30,14 +31,37 @@ const commands = {
         list: name => console.log(listItems(storage.attesters, name, attester => attester.name))
     },
     Claim: {
-        create: claimerName => Claims.createClaim(rl,storage.claims, listItems(storage.claimers, claimerName, claimer => claimer.name)[0]),
-        remove: () => Claims.removeClaim(rl,storage.claims),
-        attest: attesterName => Claims.attestClaim(rl,storage.claims, listItems(storage.attesters, attesterName, attester => attester.name)[0]),
-        verify: claimerName => Claims.verifyClaim(rl,storage.claims, listItems(storage.claimers, claimerName, claimer => claimer.name)[0]),
+        create: claimerName => Claims.createClaim(rl, storage.claims, listItems(storage.claimers, claimerName, claimer => claimer.name)[0]),
+        remove: () => Claims.removeClaim(rl, storage.claims),
+        attest: attesterName => Claims.attestClaim(rl, storage.claims, listItems(storage.attesters, attesterName, attester => attester.name)[0]),
+        verify: claimerName => Claims.verifyClaim(rl, storage.claims, listItems(storage.claimers, claimerName, claimer => claimer.name)[0]),
         list: name => console.log(listItems(storage.claims, name, claim => Claims.getClaimContents(claim).name)),
         listc: name => console.log(listItems(storage.claims, name, claim => Claims.getClaimContents(claim).name).map(getClaimContents))
     }
 
+}
+
+const cmds = {
+    help: help,
+    commands: (depth) => listObj(cmds, depth, depth),
+    create: {
+        claimer: () => Identeties.createIdentety(rl, storage.claimers),
+        attester: () => Identeties.createIdentety(rl, storage.attesters),
+        claim: claimerName => Claims.createClaim(rl, storage.claims, listItems(storage.claimers, claimerName, claimer => claimer.name)[0]),
+    },
+    remove: {
+        claimer: () => Identeties.removeIdentety(rl, storage.claimers),
+        attester: () => Identeties.removeIdentety(rl, storage.attesters),
+        claim: () => Claims.removeClaim(rl, storage.claims)
+    },
+    list: {
+        claimer: name => console.log(listItems(storage.claimers, name, claimer => claimer.name)),
+        attester: name => console.log(listItems(storage.attesters, name, attester => attester.name)),
+        claim: name => console.log(listItems(storage.claims, name, claim => Claims.getClaimContents(claim).name))
+    },
+    attest: attesterName => Claims.attestClaim(rl, storage.claims, listItems(storage.attesters, attesterName, attester => attester.name)[0]),
+    verify: claimerName => Claims.verifyClaim(rl, storage.claims, listItems(storage.claimers, claimerName, claimer => claimer.name)[0]),
+    addDid: () => Identeties.createDid(rl, storage.claimers)
 }
 
 
@@ -46,7 +70,7 @@ rl.on('line', (input) => {
     var args = input.split(" ")
     rl.pause()
     try {
-        var command = commands
+        var command = cmds
         while (typeof command !== "function") {
             command = command[args.shift()]
         }
