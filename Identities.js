@@ -3,7 +3,7 @@ const readline = require("readline")
 const store = require('store')
 
 module.exports = {
-    createIdentety: function (rl, storageLocation) { // create a new Identety
+    createIdentity: function (rl, storageLocation) { // create a new identity
         rl.question('Enter name and Mnemonic?(leave mnemonic empty for auto generation)', (answer) => {
             var inputs = answer.split(" ")
             var identity = {
@@ -21,7 +21,7 @@ module.exports = {
             }
 
             try {
-                // try to build identety from mnemonic hance check if mnemonic is valid
+                // try to build identity from mnemonic hance check if mnemonic is valid
                 identity.address = Kilt.Identity.buildFromMnemonic(identity.mnemonic).address
                 // store the new identity
                 var ids = store.get(storageLocation)
@@ -36,8 +36,8 @@ module.exports = {
             }
         });
     },
-    removeIdentety: function (rl, storageLocation) { // removes the first identity from local storage with the specified name
-        rl.question('Enter identety name : ', (name) => {
+    removeIdentity: function (rl, storageLocation) { // removes the first identity from local storage with the specified name
+        rl.question('Enter identity name : ', (name) => {
             var ids = store.get(storageLocation)
             for (var i = 0; i < ids.length; i++) {
                 if (name === ids[i].name) {
@@ -51,7 +51,7 @@ module.exports = {
         });
     },
     createDid: function (rl, storageLocation) {
-        rl.question('Enter identety name : ', (name) => {
+        rl.question('Enter identity name : ', (name) => {
             var ids = store.get(storageLocation)
             for (var i = 0; i < ids.length; i++) {
                 if (name === ids[i].name) {

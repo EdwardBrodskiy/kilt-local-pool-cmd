@@ -1,7 +1,7 @@
 const store = require('store')
 const readline = require('readline');
 const Kilt = require("@kiltprotocol/sdk-js")
-const Identeties = require("./Identeties.js")
+const Identities = require("./Identities.js")
 const Claims = require("./Claims.js");
 const { constants } = require('buffer');
 
@@ -21,13 +21,13 @@ const commands = {
     help: () => help(commands),
     commands: (depth) => listObj(commands, depth, depth),
     create: {
-        claimer: () => Identeties.createIdentety(rl, storage.claimers),
-        attester: () => Identeties.createIdentety(rl, storage.attesters),
+        claimer: () => Identities.createIdentity(rl, storage.claimers),
+        attester: () => Identities.createIdentity(rl, storage.attesters),
         claim: claimerName => Claims.createClaim(rl, storage.claims, listItems(storage.claimers, claimerName, claimer => claimer.name)[0]),
     },
     remove: {
-        claimer: () => Identeties.removeIdentety(rl, storage.claimers),
-        attester: () => Identeties.removeIdentety(rl, storage.attesters),
+        claimer: () => Identities.removeIdentity(rl, storage.claimers),
+        attester: () => Identities.removeIdentity(rl, storage.attesters),
         claim: () => Claims.removeClaim(rl, storage.claims)
     },
     list: {
@@ -40,7 +40,7 @@ const commands = {
     },
     attest: attesterName => Claims.attestClaim(rl, storage.claims, listItems(storage.attesters, attesterName, attester => attester.name)[0]),
     verify: claimerName => Claims.verifyClaim(rl, storage.claims, listItems(storage.claimers, claimerName, claimer => claimer.name)[0]),
-    addDid: () => Identeties.createDid(rl, storage.claimers)
+    addDid: () => Identities.createDid(rl, storage.claimers)
 }
 
 rl.on('line', (input) => {
