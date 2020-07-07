@@ -2,7 +2,8 @@ const store = require('store')
 const readline = require('readline');
 const Kilt = require("@kiltprotocol/sdk-js")
 const Identeties = require("./Identeties.js")
-const Claims = require("./Claims.js")
+const Claims = require("./Claims.js");
+const { constants } = require('buffer');
 
 storage = {
     claimers: "Claimer",
@@ -17,7 +18,7 @@ const rl = readline.createInterface({
 });
 
 const commands = {
-    help: help,
+    help: () => help(commands),
     commands: (depth) => listObj(commands, depth, depth),
     Claimer: {
         create: () => Identeties.createIdentety(rl, storage.claimers),
@@ -42,7 +43,7 @@ const commands = {
 }
 
 const cmds = {
-    help: help,
+    help: () => help(cmds),
     commands: (depth) => listObj(cmds, depth, depth),
     create: {
         claimer: () => Identeties.createIdentety(rl, storage.claimers),
@@ -59,12 +60,13 @@ const cmds = {
         attester: name => console.log(listItems(storage.attesters, name, attester => attester.name)),
         claim: name => console.log(listItems(storage.claims, name, claim => Claims.getClaimContents(claim).name))
     },
+    listc: {
+        claim: name => console.log(listItems(storage.claims, name, claim => Claims.getClaimContents(claim).name).map(Claims.getClaimContents))
+    },
     attest: attesterName => Claims.attestClaim(rl, storage.claims, listItems(storage.attesters, attesterName, attester => attester.name)[0]),
     verify: claimerName => Claims.verifyClaim(rl, storage.claims, listItems(storage.claimers, claimerName, claimer => claimer.name)[0]),
     addDid: () => Identeties.createDid(rl, storage.claimers)
 }
-
-
 
 rl.on('line', (input) => {
     var args = input.split(" ")
@@ -77,7 +79,7 @@ rl.on('line', (input) => {
         console.log("")
         command(...args)
     } catch (e) {
-        console.log(e)
+        console.log("Invalid command type 'help' for more info")
     } finally {
         rl.resume()
     }
@@ -91,7 +93,7 @@ rl.on('close', () => {
 })
 
 
-function help() {
+function help(commands) {
     console.log("These are the possible commands chain them to call on functions:")
     listObj(commands, 2, 2)
     console.log("Example: Claimer create")
@@ -114,6 +116,10 @@ function listItems(storageLocation, name, getName) {
         if (name === getName(items[i]) || "$" + i.toString() === name || name === "*") {
             output.push(items[i])
         }
+    }
+
+    if (output.length === 0) {
+        console.log("Make sure you enter a valid " + storageLocation + "'s name or id on command call.")
     }
     return output
 }

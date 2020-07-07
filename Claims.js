@@ -11,6 +11,11 @@ module.exports = {
         }
     },
     createClaim: function(rl, storageLocation, claimerDetails) {
+        // check claimer was found
+        if (claimerDetails == null) {
+            console.log("No such claimer exists")
+            return
+        }
         rl.question('Enter name and age?', (answer) => {
             var inputs = answer.split(" ")
             var data = {
@@ -19,20 +24,23 @@ module.exports = {
             }
     
             const ctype = require('./ctype.json') // load ctype
-            // check claimer was found
-            if (claimerDetails == null) {
-                console.log("No such claimer exists")
-                return
-            }
+            
     
             const claimer = Kilt.Identity.buildFromMnemonic(claimerDetails.mnemonic)
             // create the claim
-            const claim = Kilt.Claim.fromCTypeAndClaimContents(
-                ctype,
-                data,
-                claimer.address,
-                null
-            );
+            var claim
+            try{
+                claim = Kilt.Claim.fromCTypeAndClaimContents(
+                    ctype,
+                    data,
+                    claimer.address,
+                    null
+                );
+            }catch(e){
+                console.log(e.message)
+                return
+            }
+            
             // format for attestation request
             const requestForAttestation = Kilt.RequestForAttestation.fromClaimAndIdentity(
                 claim,
@@ -60,12 +68,21 @@ module.exports = {
                     console.log(storageLocation + " removed with name '" + contents.name + "' and age '" + contents.age + "'")
                     claims.splice(i, 1)
                     store.set(storageLocation, claims)
-                    break
+                    return
                 }
             }
+            console.log("No Claim found under the name of " + name)
         });
     },
     attestClaim: function (rl, storageLocation, attesterDetails) {
+        // setup attester
+        var attesterMnemonic = null
+        try {
+            attesterMnemonic = attesterDetails.mnemonic
+        } catch (e) {
+            console.log("No Attester exists")
+            return
+        }
         rl.question('Enter claim name : ', (name) => {
             var claims = store.get(storageLocation)
             var data, index = null
@@ -77,15 +94,13 @@ module.exports = {
                     break
                 }
             }
-    
-            // setup attester
-            var attesterMnemonic = null
-            try {
-                attesterMnemonic = attesterDetails.mnemonic
-            } catch (e) {
-                console.log("No Attester exists")
+            if(index === null){
+                console.log("No Claim found under the name of " + name)
                 return
             }
+            
+    
+            
             const attester = Kilt.Identity.buildFromMnemonic(attesterMnemonic)
     
             const requestForAttestation = Kilt.RequestForAttestation.fromRequest(
@@ -132,7 +147,12 @@ module.exports = {
             })
         });
     },
-    verifyClaim: function(rl, storageLocation, claimer){
+    verifyClaim: function(rl, storageLocation, claimerDetails){
+        // check claimer was found
+        if (claimerDetails == null) {
+            console.log("No such claimer exists")
+            return
+        }
         rl.question('Enter claim name : ', (name) => {
             var claims = store.get(storageLocation)
             var claim = null
@@ -143,7 +163,11 @@ module.exports = {
                     break
                 }
             }
-            const result = Verifier.sendForVerification(claim, nonce => module.exports.handleNonceSigning(claimer.mnemonic, nonce))
+            if(claim === null){
+                console.log("No Claim found under the name of " + name)
+                return
+            }
+            const result = Verifier.sendForVerification(claim, nonce => module.exports.handleNonceSigning(claimerDetails.mnemonic, nonce))
             switch (result) {
                 case Verifier.SUCCESS:
                     console.log("Claim Accepted by Verifier")

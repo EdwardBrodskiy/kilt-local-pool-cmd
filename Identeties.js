@@ -13,6 +13,7 @@ module.exports = {
 
             if(identity.name === ""){
                 console.log("Please enter a name")
+                return
             }
 
             if (identity.mnemonic === "") { // generate if not given
