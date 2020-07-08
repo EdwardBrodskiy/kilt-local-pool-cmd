@@ -10,7 +10,7 @@ module.exports = {
             return claim.claim.contents
         }
     },
-    createClaim: function(rl, storageLocation, claimerDetails) {
+    createClaim: function(rl, storageLocation, claimerDetails) { // create new Claim
         // check claimer was found
         if (claimerDetails == null) {
             console.log("No such claimer exists")
@@ -59,7 +59,7 @@ module.exports = {
             console.log(storageLocation + " created with name '" + data.name + "' and age '" + data.age + "'")
         });
     },
-    removeClaim: function(rl, storageLocation) {
+    removeClaim: function(rl, storageLocation) { // removes the first claim from local storage with the specified name
         rl.question('Enter claim name : ', (name) => {
             var claims = store.get(storageLocation)
             for (var i = 0; i < claims.length; i++) {
@@ -74,7 +74,7 @@ module.exports = {
             console.log("No Claim found under the name of " + name)
         });
     },
-    attestClaim: function (rl, storageLocation, attesterDetails) {
+    attestClaim: function (rl, storageLocation, attesterDetails) { // attest the claim with selected attestor
         // setup attester
         var attesterMnemonic = null
         try {
@@ -147,7 +147,7 @@ module.exports = {
             })
         });
     },
-    verifyClaim: function(rl, storageLocation, claimerDetails){
+    verifyClaim: function(rl, storageLocation, claimerDetails){ // send request for verification and give feedback on result
         // check claimer was found
         if (claimerDetails == null) {
             console.log("No such claimer exists")
@@ -186,7 +186,7 @@ module.exports = {
             }
         })
     },
-    handleNonceSigning: function(claimerMnemonic, nonce) { // sign the nonce and send of the data to be verified
+    handleNonceSigning: function(claimerMnemonic, nonce) { // sign the nonce with the seleted claimer
 
         const claimer = Kilt.Identity.buildFromMnemonic(claimerMnemonic)
         // sign the nonce as the claimer with your private identity

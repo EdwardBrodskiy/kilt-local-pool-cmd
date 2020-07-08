@@ -69,7 +69,7 @@ module.exports = {
                         ids[i]["did"] = did.createDefaultDidDocument()
                         store.set(storageLocation, ids)
                     }).catch( e => {
-                        console.log(e)
+                        console.log(e.message)
                     }).finally (() =>{
                         Kilt.default.disconnect('wss://full-nodes.kilt.io:9944')
                     })
